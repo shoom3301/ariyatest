@@ -2,6 +2,7 @@
 <html>
 <head>
 <title>Shoom layout</title>
+<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="copyright" content="Shoom" />
 
@@ -13,11 +14,79 @@
 <script type="text/javascript" src="lib/backbone.min.js"></script>
 <script type="text/javascript" src="lib/backbone.marionette.min.js"></script>
 
+<script type="text/javascript" src="js/views.js" charset="utf-8"></script>
 <script type="text/javascript" src="js/main.js" charset="utf-8"></script>
 </head>
 <body>
 	<div id="main">
-
+        <div id="header">
+            <div class="title">
+                <img class="logo" src="images/logo.png">
+                <h3>My robots</h3>
+            </div>
+            <button class="big" id="add_robot_btn">+ Добавить робота</button>
+            <div class="clear"></div>
+        </div>
+        <div id="container">
+            <div id="robots_filter">
+                <input type="text" placeholder="ID" name="id">
+                <input type="text" placeholder="Name" name="name">
+                <button name="find">Найти</button>
+            </div>
+            <div id="robots_list">
+                <ul></ul>
+            </div>
+        </div>
+        <div id="info_messages"></div>
+        <div style="display: none" id="light_box">
+            <div class="cell"></div>
+        </div>
 	</div>
+
+    <script id="item_tpl" type="template/html">
+        <div class="id">
+            <span><%= id %></span>
+        </div>
+        <div class="name">
+            <span><%= name %></span>
+        </div>
+        <div class="actions">
+            <button class="squire edit"><i></i></button>
+            <button class="squire remove"><i></i></button>
+        </div>
+    </script>
+
+    <script id="info_message_tpl" type="template/html">
+        <div class="text"><%= text %></div>
+        <button class="squire close"><i></i></button>
+    </script>
+
+    <script id="modal_tpl" type="template/html">
+        <div class="title">
+            <h3><%= title %></h3>
+            <% if(showClose){%>
+            <button class="squire close"><i></i></button>
+            <%} %>
+            <div class="clear"></div>
+        </div>
+        <% if(content){%>
+        <div class="content"><%= content %></div>
+        <%} %>
+        <div class="actions">
+            <button class="big actionButton"><%= actionButton %></button>
+            <button class="cancel"><%= cancelButton %></button>
+        </div>
+    </script>
+
+    <script id="robot_form" type="template/html">
+        <input type="text" name="name" placeholder="Название"/>
+        <select type="text" name="type">
+            <option value="">-- Выберите тип --</option>
+            <option value="droid">Дроид</option>
+            <option value="mechanical">Механический</option>
+            <option value="virtual">Виртуальный</option>
+        </select>
+        <input type="text" name="year" placeholder="Год"/>
+    </script>
 </body>
 </html>

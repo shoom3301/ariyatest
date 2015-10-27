@@ -1,3 +1,309 @@
 $(function(){
-    //start
+    /**
+     * Модель робота
+     * TODO: написать валидацию модели
+     * TODO: правильно анализировать события save и destroy
+     * */
+    var Robot = Backbone.Model.extend({
+        /**
+         * @property {number} id ID
+         * @property {string} name Имя робота
+         * @property {string} type Тип робота
+         * @property {number} year ID
+         * */
+        defaults: {
+            id: 0,
+            name: '',
+            type: '',
+            year: 0
+        },
+        /**
+         * @constructor
+         * */
+        initialize: function(){
+            this.view = new RobotView({model: this});
+            this.view.render();
+        }
+    });
+
+    /**
+     * Отображение робота в списке
+     * */
+    var RobotView = Marionette.ItemView.extend({
+        tagName: 'li',
+        template: "#item_tpl",
+        events: {
+            'click .actions .edit' : 'edit',
+            'click .actions .remove' : 'terminate'
+        },
+        initialize: function(){
+            this.listenTo(this.model, "remove", this.destroy);
+        },
+        /**
+         * Редактирование данных робота
+         * */
+        edit: function(){
+            var mdl = this.model;
+            app.showModal(EditRobotFormView,
+                {
+                    title: 'Редактирование робота',
+                    actionButton: 'Сохранить',
+                    content: $('#robot_form').html(),
+                    data: this.serializeData(),
+                    action: 'edit'
+                }, function(){
+                    if(mdl.save(this.getData())){
+                        app.notification('Робот "'+mdl.get('name')+'" успешно сохранен!', 'success');
+                        app.closeModal();
+                    }else{
+                        app.notification('Ошибка при редактировании робота "'+mdl.get('name')+'"!', 'error');
+                    }
+                });
+        },
+        /**
+         * Удаление робота
+         * */
+        terminate: function(){
+            var mdl = this.model;
+            app.showModal(ModalView,
+                {
+                    title: 'Вы уверены, что хотите удалить робота «'+this.model.get('name')+'»?',
+                    actionButton: 'Да',
+                    showClose: false
+                }, function(){
+                    if(mdl.destroy()){
+                        app.notification('Робот "'+mdl.get('name')+'" успешно удален!', 'success');
+                        app.closeModal();
+                    }else{
+                        app.notification('Ошибка при удалении робота "'+mdl.get('name')+'"!', 'error');
+                    }
+                });
+        }
+    });
+
+    /**
+     * Коллекция роботов
+     * */
+    var Robots = Backbone.Collection.extend({
+        list: '#robots_list ul',
+        model: Robot,
+        url: 'http://frontend.test.pleaple.com/api/robots'
+    });
+
+    /**
+     * Контроллер приложения
+     * */
+    var Controller = Marionette.Object.extend({
+        /**
+         * Получение списка роботов
+         * */
+        robotsList: function(){
+            app.robots.fetch();
+        },
+        /**
+         * Получение робота по id
+         * */
+        getRobot: function(id){
+            app.APIRequest('/'+id, 'GET', '', 'Неправильный ID робота!', function(res){
+                if(res && res.status == 'FOUND'){
+                    app.robots.reset();
+                    app.robots.add(res.data);
+                }else{
+                    app.notification('Робот с таким ID не найден!', 'warning');
+                }
+            });
+        },
+        /**
+         * Поиск робота по имени
+         * */
+        findRobot: function(name){
+            app.APIRequest('/search/'+name, 'GET', '', 'Неправильный ID робота!', function(res){
+                if(res && res.length){
+                    app.robots.reset();
+                    app.robots.add(res);
+                }else{
+                    app.notification('Робот с таким именем не найден!', 'warning');
+                }
+            });
+        }
+    });
+
+    /**
+     * Роутер приложения
+     * */
+    var Router = Marionette.AppRouter.extend({
+        controller: new Controller(),
+        appRoutes: {
+            "": "robotsList",
+            "robot/:id": "getRobot",
+            "search/:name": "findRobot"
+        }
+
+    });
+
+    /**
+     * Приложение
+     * */
+    var App = Marionette.Application.extend({
+        //Скорость анимации
+        animateSpeed: 300,
+        //Коллекция роботов
+        robots: null,
+        //Роутер
+        router: null,
+        //Оповещения
+        _messages: [],
+        //Показано ли сейчас оповещение
+        _messageShowed: false,
+        /**
+         * @constructor
+         * Создается коллекция роботов
+         * На коллекцию роботов вешаются слушатели на события добавления и очистки
+         * Создается роутер
+         * */
+        initialize: function() {
+            this.robots = new Robots();
+            this.robots.on("add", function(robot) {
+                $(this.list).append(robot.view.$el);
+            })
+            .on('reset', function(col, opts){
+                _.each(opts.previousModels, function(model){
+                    model.trigger('remove');
+                });
+            });
+
+            this.router = new Router();
+        },
+        APIRequest: function(url, method, successText, errorText, success, error, data){
+            $.ajax({
+                url: 'http://frontend.test.pleaple.com/api/robots'+url,
+                method: method,
+                data: data,
+                dataType: 'json',
+                success: function(res){
+                    if(successText) app.notification(successText, 'success');
+                    if(success) success(res);
+                },
+                error: function(res){
+                    if(res && res.responseJSON && res.responseJSON.messages){
+                        _.each(res.responseJSON.messages, function(msg){
+                            app.notification(msg, 'error')
+                        })
+                    }else{
+                        if(errorText) app.notification(errorText, 'error')
+                    }
+                    if(error) error(res);
+                }
+            })
+        },
+        /**
+         * Оповещение. Ложить оповещение в очередь и вызывает очередное оповещение.
+         * @param {string} text Текст оповещения
+         * @param {string} type Тип оповещения
+         * @param {number} time Время показа оповещения
+         * @param {number} speed Скорость анимации
+         * @return {App}
+         * */
+        notification: function(text, type, time, speed){
+            if(text){
+                this._messages.push({text: text, type: type, time: time, speed: speed});
+                if(!this._messageShowed) this.queueMessage();
+            }
+            return this;
+        },
+        /**
+         * Вызов очередного оповещения
+         * */
+        queueMessage: function(){
+            if(this._messages.length){
+                this._messageShowed = true;
+
+                var th = this;
+                var data = this._messages[0];
+
+                data.after = function(){
+                    th._messages.shift();
+                    th._messageShowed = false;
+                    th.queueMessage();
+                };
+
+                this.getRegion('infoMessages').show(
+                    new InfoMessageView(data)
+                );
+            }
+        },
+        /**
+         * Показать модальное окно (lightbox)
+         * @param {ModalView} _view представление окна
+         * @param {object} options параметры
+         * @param {function} action событие согласия диалога в окне
+         * */
+        showModal: function(_view, options, action){
+            var th = this;
+
+            var region = this.getRegion('lightBox');
+
+            region.$el.parent().css({display: 'table', opacity: 0}).animate({opacity: 1}, this.animateSpeed);
+
+            var view = new _view(options);
+
+            view.on('action', function(){
+                action.apply(this);
+            }).on('close', function(){
+                th.closeModal();
+            });
+            region.show(view);
+        },
+        /**
+         * Закрыть текущее модальное окно
+         * */
+        closeModal: function(){
+            var region = this.getRegion('lightBox');
+            region.$el.parent().fadeOut(this.animateSpeed, function(){
+                region.empty()
+            });
+        }
+    });
+
+    //Приложение
+    var app = new App();
+
+    /**
+     * При старте приложения запускаем отслеживание истории,
+     * инициализируем форму поиска и инициализируем форму добавления робота
+     * */
+    app.on('start', function() {
+        var th = this;
+
+        Backbone.history.start();
+        new SearchFormView();
+
+        $('#add_robot_btn').click(function(){
+            th.showModal(EditRobotFormView,
+                {
+                    title: 'Добавление робота',
+                    actionButton: 'Добавить',
+                    content: $('#robot_form').html(),
+                    action: 'add'
+                },function(){
+                    var new_mdl = th.robots.push(this.getData());
+                    new_mdl.unset('id');
+                    if(new_mdl.save()){
+                        th.notification('Робот успешно добавлен!', 'success');
+                        app.closeModal();
+                    }else{
+                        th.notification('Ошибка при добавлении робота!', 'error');
+                    }
+                }
+            );
+        });
+    });
+
+    app.addRegions({
+        infoMessages: "#info_messages",
+        lightBox: '#light_box .cell'
+    });
+
+    /* START */
+    app.start();
 });
