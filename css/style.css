@@ -1,0 +1,18 @@
+﻿body, html{
+margin: 0;
+padding: 0;
+font-size: 14px;
+font-family: Arial, sans-serif;
+color: #252525;
+}
+
+ul, p, h1, h2, h3, h4, h5{
+margin: 0;
+padding: 0;
+}
+
+.clear{
+    clear: both;
+    float: none;
+    display: block;
+}
