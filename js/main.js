@@ -78,12 +78,26 @@ $(function(){
                     data: this.serializeData(),
                     action: 'edit'
                 }, function(){
-                    if(mdl.save(this.getData())){
-                        app.notification('Робот "'+mdl.get('name')+'" успешно сохранен!', 'success');
-                        app.closeModal();
-                    }else{
-                        app.notification('Ошибка при редактировании робота "'+mdl.get('name')+'"!', 'error');
-                    }
+                    mdl.save(this.getData(), {
+                        success: function (model, response) {
+                            if(response && response.status=="OK"){
+                                app.notification('Робот "'+mdl.get('name')+'" успешно сохранен!', 'success');
+                                app.closeModal();
+                            }else{
+                                app.notification('Ошибка при редактировании робота!', 'error');
+                            }
+                        },
+                        error: function (model, response) {
+                            if(response && response.responseJSON && response.responseJSON.messages){
+                                _.each(response.responseJSON.messages, function(msg){
+                                    app.notification(msg, 'error');
+                                });
+                            }else{
+                                app.notification('Ошибка при редактировании робота "'+mdl.get('name')+'"!', 'error');
+                            }
+                            app.closeModal();
+                        }
+                    });
                 });
         },
         /**
