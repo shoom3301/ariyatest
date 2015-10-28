@@ -413,8 +413,15 @@ button.squire i{
     padding: 20px 0;
 }
 
+#add_robot_btn .small_text{
+    display: none;
+    font-size: 40px;
+    line-height: 20px;
+    width: 20px;
+}
+
 @media screen and (max-width: 640px) {
-    #main{
+    #main, #light_box .modal{
         width: 100%;
     }
 }
@@ -428,5 +435,21 @@ button.squire i{
 
     #header h3{
         font-size: 28px;
+    }
+
+    #add_robot_btn .small_text{
+        display: block;
+    }
+
+    #add_robot_btn .big_text{
+        display: none;
+    }
+
+    #robots_list ul li div.name {
+        width: 61%;
+    }
+
+    #robots_list ul li div.id{
+        width: 15%;
     }
 }

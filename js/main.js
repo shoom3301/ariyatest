@@ -1,8 +1,8 @@
+Backbone.emulateJSON = true;
+
 $(function(){
     /**
      * Модель робота
-     * TODO: написать валидацию модели
-     * TODO: правильно анализировать события save и destroy
      * */
     var Robot = Backbone.Model.extend({
         /**
@@ -23,6 +23,31 @@ $(function(){
         initialize: function(){
             this.view = new RobotView({model: this});
             this.view.render();
+        },
+        /**
+         * Маппинг данных с сервера
+         * */
+        parse: function(response) {
+            if(response && (response.status == 'FOUND' || response.status == 'OK')){
+                return response.data;
+            }else if(response && response.id){
+                return response;
+            }else{
+                app.notification('Робот с таким ID не найден!', 'warning');
+                return false;
+            }
+        },
+        /**
+         * Костыль, потому что на сервер данные должны отправляться в ви json строки
+         * */
+        save: function (attributes, options) {
+            options       = options || {};
+
+            options.data  = JSON.stringify(this.toJSON());
+            if (options.emulateJSON) {
+                options.contentType = 'application/x-www-form-urlencoded';
+            }
+            return Backbone.Model.prototype.save.call(this, attributes || {}, options);
         }
     });
 
@@ -37,7 +62,8 @@ $(function(){
             'click .actions .remove' : 'terminate'
         },
         initialize: function(){
-            this.listenTo(this.model, "remove", this.destroy);
+            this.model.on("remove", this.destroy, this);
+            this.model.on('change', this.render, this);
         },
         /**
          * Редактирование данных робота
@@ -71,12 +97,13 @@ $(function(){
                     actionButton: 'Да',
                     showClose: false
                 }, function(){
-                    if(mdl.destroy()){
+                    mdl.destroy({success: function(model, response) {
                         app.notification('Робот "'+mdl.get('name')+'" успешно удален!', 'success');
                         app.closeModal();
-                    }else{
+                    }, error: function(model, response){
                         app.notification('Ошибка при удалении робота "'+mdl.get('name')+'"!', 'error');
-                    }
+                        app.closeModal();
+                    }});
                 });
         }
     });
@@ -104,26 +131,23 @@ $(function(){
          * Получение робота по id
          * */
         getRobot: function(id){
-            app.APIRequest('/'+id, 'GET', '', 'Неправильный ID робота!', function(res){
-                if(res && res.status == 'FOUND'){
-                    app.robots.reset();
-                    app.robots.add(res.data);
-                }else{
-                    app.notification('Робот с таким ID не найден!', 'warning');
-                }
-            });
+            app.robots.reset();
+            var mdl = app.robots.push({id: id});
+            mdl.fetch();
         },
         /**
          * Поиск робота по имени
          * */
         findRobot: function(name){
-            app.APIRequest('/search/'+name, 'GET', '', 'Неправильный ID робота!', function(res){
+            $.getJSON('http://frontend.test.pleaple.com/api/robots/search/'+name, function(res){
                 if(res && res.length){
                     app.robots.reset();
                     app.robots.add(res);
                 }else{
                     app.notification('Робот с таким именем не найден!', 'warning');
                 }
+            }, function(){
+                app.notification('Ошибка при поиске робота!', 'error');
             });
         }
     });
@@ -173,28 +197,6 @@ $(function(){
             });
 
             this.router = new Router();
-        },
-        APIRequest: function(url, method, successText, errorText, success, error, data){
-            $.ajax({
-                url: 'http://frontend.test.pleaple.com/api/robots'+url,
-                method: method,
-                data: data,
-                dataType: 'json',
-                success: function(res){
-                    if(successText) app.notification(successText, 'success');
-                    if(success) success(res);
-                },
-                error: function(res){
-                    if(res && res.responseJSON && res.responseJSON.messages){
-                        _.each(res.responseJSON.messages, function(msg){
-                            app.notification(msg, 'error')
-                        })
-                    }else{
-                        if(errorText) app.notification(errorText, 'error')
-                    }
-                    if(error) error(res);
-                }
-            })
         },
         /**
          * Оповещение. Ложить оповещение в очередь и вызывает очередное оповещение.
@@ -287,13 +289,27 @@ $(function(){
                     action: 'add'
                 },function(){
                     var new_mdl = th.robots.push(this.getData());
-                    new_mdl.unset('id');
-                    if(new_mdl.save()){
-                        th.notification('Робот успешно добавлен!', 'success');
-                        app.closeModal();
-                    }else{
-                        th.notification('Ошибка при добавлении робота!', 'error');
-                    }
+                    delete new_mdl.id;
+                    new_mdl.save(null, {
+                        success: function (model, response) {
+                            if(response && response.status=="OK"){
+                                th.notification('Робот успешно добавлен!', 'success');
+                                new_mdl.set(response.data);
+                                app.closeModal();
+                            }else{
+                                app.notification('Ошибка при добавлении робота!', 'error');
+                            }
+                        },
+                        error: function (model, response) {
+                            if(response && response.responseJSON && response.responseJSON.messages){
+                                _.each(response.responseJSON.messages, function(msg){
+                                    app.notification(msg, 'error');
+                                });
+                            }else{
+                                app.notification('Ошибка при добавлении робота!', 'error');
+                            }
+                        }
+                    });
                 }
             );
         });
