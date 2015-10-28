@@ -313,6 +313,8 @@ $(function(){
                 }
             );
         });
+
+        $('#robots_list').find('ul').css('max-height', $(window).height()-$('#header').outerHeight() - $('#robots_filter').outerHeight());
     });
 
     app.addRegions({

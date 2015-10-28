@@ -39,6 +39,10 @@ ul, p, h1, h2, h3, h4, h5{
     display: block;
 }
 
+body{
+    overflow: hidden;
+}
+
 #main{
     width: 600px;
     margin: 0 auto;
