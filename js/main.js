@@ -355,7 +355,7 @@ $(function(){
 
         var $ww = $(window);
         $ww.resize(function(){
-            $('#robots_list').find('ul').css('max-height', $ww.height()-$('#header').outerHeight() - $('#robots_filter').outerHeight());
+            $('#robots_list, #robots_list ul').height($ww.height()-$('#header').outerHeight() - $('#robots_filter').outerHeight());
         }).trigger('resize');
 
     });
