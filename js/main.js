@@ -59,11 +59,18 @@ $(function(){
         template: "#item_tpl",
         events: {
             'click .actions .edit' : 'edit',
-            'click .actions .remove' : 'terminate'
+            'click .actions .remove' : 'terminate',
+            'click .id' : 'open'
         },
         initialize: function(){
             this.model.on("remove", this.destroy, this);
             this.model.on('change', this.render, this);
+        },
+        /**
+         * Окрытваем запись отдельно
+         * */
+        open: function(){
+            location.hash="robot/"+this.model.get('id');
         },
         /**
          * Редактирование данных робота
@@ -112,7 +119,12 @@ $(function(){
                     showClose: false
                 }, function(){
                     mdl.destroy({success: function(model, response) {
-                        app.notification('Робот "'+mdl.get('name')+'" успешно удален!', 'success');
+                        if(response && response.status == 'OK'){
+                            app.notification('Робот "'+mdl.get('name')+'" успешно удален!', 'success');
+                        }else{
+                            app.notification('Ошибка при удалении робота!', 'error');
+                        }
+
                         app.closeModal();
                     }, error: function(model, response){
                         app.notification('Ошибка при удалении робота "'+mdl.get('name')+'"!', 'error');
@@ -328,7 +340,15 @@ $(function(){
             );
         });
 
-        $('#robots_list').find('ul').css('max-height', $(window).height()-$('#header').outerHeight() - $('#robots_filter').outerHeight());
+        $('#header').find('.logo').click(function(){
+            location.hash = '';
+        });
+
+        var $ww = $(window);
+        $ww.resize(function(){
+            $('#robots_list').find('ul').css('max-height', $ww.height()-$('#header').outerHeight() - $('#robots_filter').outerHeight());
+        }).trigger('resize');
+
     });
 
     app.addRegions({
