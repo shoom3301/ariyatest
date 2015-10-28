@@ -224,6 +224,10 @@ button.cancel:hover{
     cursor: pointer;
 }
 
+#robots_list ul li div.id a{
+    color: #ffffff;
+}
+
 #robots_list ul li div.name{
     width: 66%;
 }
@@ -266,6 +270,7 @@ button.squire i{
     height: 32px;
     display: inline-block;
     background-image: url("../images/icons.png");
+    vertical-align: middle;
 }
 
 #info_messages{
@@ -424,6 +429,19 @@ button.squire i{
     font-size: 40px;
     line-height: 20px;
     width: 20px;
+}
+
+#loader{
+    display: none;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: #ffffff url("../images/loader.gif") no-repeat center center;
+}
+
+#robots_list{
+    position: relative;
+    min-height: 100px;
 }
 
 @media screen and (max-width: 640px) {

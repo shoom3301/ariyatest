@@ -59,18 +59,11 @@ $(function(){
         template: "#item_tpl",
         events: {
             'click .actions .edit' : 'edit',
-            'click .actions .remove' : 'terminate',
-            'click .id' : 'open'
+            'click .actions .remove' : 'terminate'
         },
         initialize: function(){
             this.model.on("remove", this.destroy, this);
             this.model.on('change', this.render, this);
-        },
-        /**
-         * Окрытваем запись отдельно
-         * */
-        open: function(){
-            location.hash="robot/"+this.model.get('id');
         },
         /**
          * Редактирование данных робота
@@ -140,7 +133,16 @@ $(function(){
     var Robots = Backbone.Collection.extend({
         list: '#robots_list ul',
         model: Robot,
-        url: 'http://frontend.test.pleaple.com/api/robots'
+        url: 'http://frontend.test.pleaple.com/api/robots',
+        initialize: function(){
+            this.on('reset', function(){
+                app.getRegion('loader').$el.fadeIn(app.animateSpeed);
+            });
+
+            this.on('load_content', function(){
+                app.getRegion('loader').$el.fadeOut(app.animateSpeed);
+            });
+        }
     });
 
     /**
@@ -151,7 +153,9 @@ $(function(){
          * Получение списка роботов
          * */
         robotsList: function(){
-            app.robots.fetch();
+            app.robots.reset();
+            app.robots.fetch(app.afterFetch);
+
         },
         /**
          * Получение робота по id
@@ -159,7 +163,7 @@ $(function(){
         getRobot: function(id){
             app.robots.reset();
             var mdl = app.robots.push({id: id});
-            mdl.fetch();
+            mdl.fetch(app.afterFetch);
         },
         /**
          * Поиск робота по имени
@@ -169,6 +173,7 @@ $(function(){
                 if(res && res.length){
                     app.robots.reset();
                     app.robots.add(res);
+                    app.afterFetch.success();
                 }else{
                     app.notification('Робот с таким именем не найден!', 'warning');
                 }
@@ -205,6 +210,14 @@ $(function(){
         _messages: [],
         //Показано ли сейчас оповещение
         _messageShowed: false,
+        //события после обновления данных
+        afterFetch: {
+            success: function(){
+                app.robots.trigger('load_content');
+            }, error: function(){
+                app.robots.trigger('load_content');
+            }
+        },
         /**
          * @constructor
          * Создается коллекция роботов
@@ -340,10 +353,6 @@ $(function(){
             );
         });
 
-        $('#header').find('.logo').click(function(){
-            location.hash = '';
-        });
-
         var $ww = $(window);
         $ww.resize(function(){
             $('#robots_list').find('ul').css('max-height', $ww.height()-$('#header').outerHeight() - $('#robots_filter').outerHeight());
@@ -353,7 +362,8 @@ $(function(){
 
     app.addRegions({
         infoMessages: "#info_messages",
-        lightBox: '#light_box .cell'
+        lightBox: '#light_box .cell',
+        loader: '#loader'
     });
 
     /* START */
