@@ -136,7 +136,7 @@ button.cancel:hover{
     line-height: 73px;
     font-size: 37px;
     font-weight: 800;
-    text-shadow: 2px 2px 1px rgba(255, 255, 255, 0.8);
+    text-shadow: 0 1px 0px #fff;
 }
 
 #header .logo{
@@ -474,6 +474,7 @@ button.squire i{
 
     #robots_list ul li div.name {
         width: 61%;
+        overflow: hidden;
     }
 
     #robots_list ul li div.id{
